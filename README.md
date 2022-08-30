@@ -10,4 +10,6 @@ autore_perloutput.py
 
 The resulting csv is worked up in a function contained in
 
-autore_scikitinput.py
+autore_scikitsvc.py
+
+Which also does SVC
