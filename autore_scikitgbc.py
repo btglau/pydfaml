@@ -2,7 +2,9 @@
 
 scikit-learn:
 
-random forest / ensemble methods
+gradient boosting methods
+
+- use native categorical features instead of one-hot encoding
 
 '''
 import sys
@@ -12,7 +14,7 @@ import numpy as np
 
 from autore_scikitsvc import getArgs, getData
 
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn import model_selection
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
@@ -34,17 +36,22 @@ if __name__ == '__main__':
                                         X, y, range(X.shape[0]), test_size=0.2, random_state=0, stratify=y)
 
     if args.a == 1:
-        # no need to transform data for random forest
+        # no need to transform data for random forest or GBC
         pass
+
+    categorical_mask = None
+    if args.e == 0:
+        # specify which are categorical
+        categorical_mask = np.arange(4)
 
     # for when there is an imbalance of categories
     cv = model_selection.StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=42)
     # 128 trees no more improvement
     # 'max_depth':None, 'min_samples_split':2
     param_grid = [
-    {'n_estimators':[1,2,4,8,16,32,64,96,128,256,512]},
+    {'l2_regularization':[0,1e-2,1e-1,1,10,1e2],'max_iter':[1,10,100,1000]}
     ]
-    grid_search = model_selection.GridSearchCV(RandomForestClassifier(),
+    grid_search = model_selection.GridSearchCV(HistGradientBoostingClassifier(categorical_features=categorical_mask,scoring='f1'),
                                                 param_grid,n_jobs=-1,verbose=3,cv=cv,
                                                 return_train_score=True)
     grid_search.fit(X_train, y_train)

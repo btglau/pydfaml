@@ -38,9 +38,13 @@ def getArgs(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-d',help="dataset to use",default='autoRE_AlkAtom19-TAE140')
     parser.add_argument('-e',help='''encoding type
-                                    0 - reactants and products, [r p]
+                                    0 - encode each TAE as a number
                                     1 - encode into one vector of length r w/out separating
-                                    2 - add information about atom counts''',default=1,type=int)
+                                    ''',default=1,type=int)
+    parser.add_argument('-a',help='''augment each rxn (row) with number of atoms of each type
+                                    0 - no
+                                    1 - yes
+                                    ''',default=0,type=int)
     parser.add_argument('--dfa',help="comma separated list of functionals",default='wB97X,wB97X-D')
 
     args = parser.parse_args(argv)
@@ -88,17 +92,17 @@ def getData(args):
     reactants = np.zeros((AREI.shape[0],AREI.max()+1))
     ix_rxn = np.arange(AREI.shape[0])
     if args.e == 0:
-        products = np.copy(reactants)
-        reactants[np.c_[ix_rxn,ix_rxn],AREI[:,0:2]] = 1
-        products[np.c_[ix_rxn,ix_rxn],AREI[:,2:]] = 1
-        rp = np.c_[reactants,products]
-    elif args.e > 0:
+        rp = AREI
+    elif args.e == 1:
         # instead of [reactants] + [products], combine them into one vector that doesn't
         # put a "spatial" emphasis on separating reactants and products
         rp = np.zeros(reactants.shape)
         rp[np.c_[ix_rxn,ix_rxn],AREI[:,0:2]] = -1
         rp[np.c_[ix_rxn,ix_rxn],AREI[:,2:]] = 1
-    if args.e == 2:
+        # try eliminating xxxx - superfluous since A -> C+D has three 1's anyways
+        #rp = rp[:,1:]
+
+    if args.a == 1:
         # add on a vector with number of atoms
         # TODO: this operation is slow, find a way to speed it up
         atoms = ARE.columns[4].split('-')
@@ -107,19 +111,17 @@ def getData(args):
         for ix in range(atom_counts.shape[0]):
             atom_counts.loc[ix,counts[ix][0::2]] = counts[ix][1::2]
         # delete atoms that aren't present
-        atom_counts.drop(atom_counts.columns[atom_counts.sum() == 0],axis=1)
+        atom_counts = atom_counts.drop(atom_counts.columns[atom_counts.sum() == 0],axis=1)
         rp = np.c_[rp,atom_counts]
-
-    # try eliminating xxxx - superfluous since A -> C+D has three 1's anyways
-    #rp = rp[:,1:]
 
     if args.e < 2:
         # test if the indexing worked
-        tmp = np.reshape(np.where(rp)[1],AREI.shape)
+        #tmp = np.reshape(np.where(rp)[1],AREI.shape)
         #tmp[:,2:] -= AREI.max()+1
         # if, e.g AREI[147,:] = [  0, 114, 119, 107]
         #          tmp[147,:] = [  0, 114, 107, 119]
-        print(f'rxn was one-hot encoded right? {np.all(np.sort(tmp,axis=1) == np.sort(AREI,axis=1))}')
+        #print(f'rxn was one-hot encoded right? {np.all(np.sort(tmp,axis=1) == np.sort(AREI,axis=1))}')
+        pass
     
     # do not one hot encode for sklearn svc
     methods = ARE.columns[5:]
@@ -172,7 +174,7 @@ if __name__ == '__main__':
     # fit the transformer to the training data, then apply that same transformation
     # to the test data - rationale is we don't see the test data coming in, so we don't
     # know the true range of the data
-    if args.e == 2:
+    if args.a == 1:
         transformer = preprocessing.MaxAbsScaler(copy=False).fit(X_train)
         transformer.transform(X_train)
         transformer.transform(X_test)

@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     X, y, Xlabel, Ylabel, summary, ARE = getData(args)
 
-    if args.e == 2:
+    if args.a == 1:
         transformer = preprocessing.MaxAbsScaler(copy=False).fit(X)
         transformer.transform(X)
 

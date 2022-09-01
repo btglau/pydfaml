@@ -113,7 +113,7 @@ if __name__ == '__main__':
     # create Datasets for torch
     X_train, X_test, y_train, y_test, ind_train, ind_test = model_selection.train_test_split(
                                         X, y, range(X.shape[0]), test_size=0.2, random_state=0, stratify=y)
-    if args.e == 2:
+    if args.a == 1:
         transformer = preprocessing.MaxAbsScaler(copy=False).fit(X_train)
         transformer.transform(X_train)
         transformer.transform(X_test)
